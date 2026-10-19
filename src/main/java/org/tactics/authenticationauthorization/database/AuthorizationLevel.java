@@ -1,4 +1,4 @@
-package org.example.database;
+package org.tactics.authenticationauthorization.database;
 
 public enum AuthorizationLevel {
     DEFAULT("default"),

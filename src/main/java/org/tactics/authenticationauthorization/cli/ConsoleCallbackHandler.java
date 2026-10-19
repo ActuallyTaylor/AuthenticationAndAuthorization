@@ -1,4 +1,5 @@
-package org.example;
+package org.tactics.authenticationauthorization.cli;
+
 import javax.security.auth.callback.*;
 import java.io.Console;
 
