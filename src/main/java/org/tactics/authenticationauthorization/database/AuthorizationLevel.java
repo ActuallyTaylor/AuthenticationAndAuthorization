@@ -2,8 +2,7 @@ package org.tactics.authenticationauthorization.database;
 
 public enum AuthorizationLevel {
     DEFAULT("default"),
-    ADMIN("admin"),
-    ;
+    ADMIN("admin");
 
     final String code;
 
@@ -11,7 +10,4 @@ public enum AuthorizationLevel {
         this.code = s;
     }
 
-    public static String[] stringValues() {
-        return new String[] { DEFAULT.code, ADMIN.code };
-    }
 }
