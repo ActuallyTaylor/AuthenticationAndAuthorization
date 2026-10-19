@@ -37,9 +37,13 @@ public class Main {
             }
         }
 
+        // The currently active user that all actions should be performed as.
+        User activeUser;
+
+        // Authenticate the user's login so we know who they are.
         try {
             console.printf("Please log in: %n");
-            loginUser(userDatabase);
+            activeUser = loginUser(userDatabase);
         } catch (IOException | UnsupportedCallbackException e) {
             console.printf("Failed to login: %s", e.getMessage());
             return;
