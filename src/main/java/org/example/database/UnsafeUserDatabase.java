@@ -8,7 +8,7 @@ import tools.jackson.databind.ObjectWriter;
 
 /// A very bad user database that just saves user information into a json file with plaintext passwords.
 public class UnsafeUserDatabase {
-    ArrayList<User> users;
+    public ArrayList<User> users = new ArrayList<>();
 
     public UnsafeUserDatabase() { }
 
@@ -24,13 +24,13 @@ public class UnsafeUserDatabase {
     }
 
     public void addUser(User user) {
-        users.add(user);
+        this.users.add(user);
     }
 
-    public void login(User user) {
+    public User login(String name, String password) {
         for (User u : users) {
-            if (u.name().equals(user.name()) && u.password().equals(user.password())) {
-                return;
+            if (u.name().equals(name) && u.password().equals(password)) {
+                return u;
             }
         }
         throw new IllegalArgumentException("Invalid username or password");

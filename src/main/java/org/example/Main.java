@@ -12,27 +12,47 @@ import java.io.IOException;
 public class Main {
     static String DATABASE_NAME = "user.json";
 
-    static void main() {
+    static void main()  {
         Console console = System.console();
 
-        File file = new File(DATABASE_NAME);
-        UnsafeUserDatabase vulnerableUserDatabase;
+        File databaseFile = new File(DATABASE_NAME);
+        UnsafeUserDatabase userDatabase;
 
         // Check if the file exists
-        if (file.exists()) {
+        if (databaseFile.exists()) {
             console.printf("Loading existing database!%n");
-            vulnerableUserDatabase = UnsafeUserDatabase.readFrom(file);
+            userDatabase = UnsafeUserDatabase.readFrom(databaseFile);
         } else {
             console.printf("Creating new database!%n");
-            vulnerableUserDatabase = new UnsafeUserDatabase();
+            userDatabase = new UnsafeUserDatabase();
             console.printf("Please register an admin account: %n");
-            User adminUser = registerNewUser(AuthorizationLevel.ADMIN, true);
+
+            try {
+                User adminUser = registerNewUser(AuthorizationLevel.ADMIN, true);
+                userDatabase.addUser(adminUser);
+                userDatabase.writeTo(databaseFile);
+            } catch (IOException | UnsupportedCallbackException e) {
+                console.printf("Failed to register an initial user: %s", e.getMessage());
+                return;
+            }
         }
 
-        
+        try {
+            console.printf("Please log in: %n");
+            loginUser(userDatabase);
+        } catch (IOException | UnsupportedCallbackException e) {
+            console.printf("Failed to login: %s", e.getMessage());
+            return;
+        }
     }
 
-    static User registerNewUser(AuthorizationLevel level, Boolean autoAdmin) {
+    /// Prompts a user to register a new user. User's with an AuthorizationLevel of ADMIN will be able to add
+    /// new admin users. Non-admin users will be able to add regular users.
+    ///
+    /// @param level The AuthorizationLevel of the current user.
+    /// @param autoAdmin Should this function automatically create an admin user (First Registration).
+    /// @return A User object representing the newly registered user.
+    static User registerNewUser(AuthorizationLevel level, Boolean autoAdmin) throws IOException, UnsupportedCallbackException {
         Console console = System.console();
 
         CallbackHandler callbackHandler = new ConsoleCallbackHandler();
@@ -40,34 +60,44 @@ public class Main {
         NameCallback nameCallback = new NameCallback("username: ");
         PasswordCallback passwordCallback = new PasswordCallback("password: ", false);
 
-        try {
-            callbackHandler.handle(new Callback[]{nameCallback, passwordCallback});
-            String username = nameCallback.getName();
-            String password = new String(passwordCallback.getPassword());
+        callbackHandler.handle(new Callback[]{nameCallback, passwordCallback});
+        String username = nameCallback.getName();
+        String password = new String(passwordCallback.getPassword());
 
-            AuthorizationLevel userLevel;
+        AuthorizationLevel userLevel;
 
-            if (autoAdmin) {
-                userLevel = AuthorizationLevel.ADMIN;
+        if (autoAdmin) {
+            userLevel = AuthorizationLevel.ADMIN;
+        } else {
+            if (level == AuthorizationLevel.ADMIN) {
+                String[] availableRoles = new String[]{AuthorizationLevel.ADMIN.toString(), AuthorizationLevel.DEFAULT.toString()};
+                ChoiceCallback authorizationCallback = new ChoiceCallback("Authentication: ", availableRoles, 0, false);
+                callbackHandler.handle(new Callback[]{authorizationCallback});
+
+                int[] selectedChoices = authorizationCallback.getSelectedIndexes();
+                String role = availableRoles[selectedChoices[0]];
+                userLevel = AuthorizationLevel.valueOf(role);
             } else {
-                if (level == AuthorizationLevel.ADMIN) {
-                    String[] availableRoles = new String[]{AuthorizationLevel.ADMIN.toString(), AuthorizationLevel.DEFAULT.toString()};
-                    ChoiceCallback authorizationCallback = new ChoiceCallback("Authentication: ", availableRoles, 0, false);
-                    callbackHandler.handle(new Callback[]{authorizationCallback});
-
-                    int[] selectedChoices = authorizationCallback.getSelectedIndexes();
-                    String role = availableRoles[selectedChoices[0]];
-                    userLevel = AuthorizationLevel.valueOf(role);
-                } else {
-                    userLevel = AuthorizationLevel.DEFAULT;
-                }
+                userLevel = AuthorizationLevel.DEFAULT;
             }
-
-            console.printf("username: %s, password: %s", username, password);
-            return new User(username, password, userLevel);
-        } catch (IOException | UnsupportedCallbackException e) {
-            console.printf("Error: %s", e.getMessage());
-            return null;
         }
+
+        console.printf("username: %s, password: %s", username, password);
+        return new User(username, password, userLevel);
+    }
+
+    static User loginUser(UnsafeUserDatabase userDatabase) throws IOException, UnsupportedCallbackException {
+        Console console = System.console();
+
+        CallbackHandler callbackHandler = new ConsoleCallbackHandler();
+
+        NameCallback nameCallback = new NameCallback("username: ");
+        PasswordCallback passwordCallback = new PasswordCallback("password: ", false);
+
+        callbackHandler.handle(new Callback[]{nameCallback, passwordCallback});
+        String username = nameCallback.getName();
+        String password = new String(passwordCallback.getPassword());
+
+        return userDatabase.login(username, password);
     }
 }
