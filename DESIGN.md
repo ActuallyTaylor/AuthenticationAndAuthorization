@@ -29,6 +29,7 @@ D --> R{Authorization Check}
 R -->|Authorized| A[Service action]
 R -->|Not authorized| X[Access denied]
 ```
+*see DesignDiagram.png if diagram fails to render*
 
 # Authentication Process
 On application startup, the user database is loaded from user.json. If no such database is found, the user is prompted to create the application's initial account. This account is automatically assigned the ADMIN role, as the first user, and saved to the newly created database. 
