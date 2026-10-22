@@ -13,6 +13,7 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.ChoiceCallback;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
+import javax.security.auth.callback.TextInputCallback;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
@@ -72,32 +73,38 @@ public class Main {
       return;
     }
 
+    String prompt = "Choose a service: \n";
+    prompt += "\t0) /users (DEFAULT)\n";
+    prompt += "\t1) /register (ADMIN)\n";
+    prompt += "\t2) /edit-user (ADMIN)\n";
+    prompt += "\t3) /exit\n";
+    prompt += "Enter URL: ";
     while (true) {
-      ChoiceCallback serviceCallback = new ChoiceCallback("Choose a service:", SERVICES, 0, false);
+      TextInputCallback serviceCallback = new TextInputCallback(prompt, "/users");
       try {
         callbackHandler.handle(new Callback[] { serviceCallback });
       } catch (IOException | javax.security.auth.callback.UnsupportedCallbackException e) {
         throw new IllegalStateException("Console callback handler rejected a service choice", e);
       }
 
-      int choice = serviceCallback.getSelectedIndexes()[0];
-      if (choice == SERVICES.length - 1) {
+      String url = serviceCallback.getText();
+      if (url.equals("/exit")) {
         return;
       }
 
-      switch (choice) {
-        case 0 -> invokeService(subject, AuthorizationLevel.DEFAULT, "/users",
+      switch (url) {
+        case "/users" -> invokeService(subject, AuthorizationLevel.DEFAULT, url,
             () -> listUsers(userDatabase, console));
-        case 1 -> invokeService(subject, AuthorizationLevel.ADMIN, "/register", () -> {
+        case "/register" -> invokeService(subject, AuthorizationLevel.ADMIN, url, () -> {
           userDatabase.addUser(registerNewUser(false));
           userDatabase.writeTo(databaseFile);
           console.printf("User registered.%n");
         });
-        case 2 -> invokeService(subject, AuthorizationLevel.ADMIN, "/edit-user", () -> {
+        case "/edit-user" -> invokeService(subject, AuthorizationLevel.ADMIN, url, () -> {
           editUser(userDatabase, callbackHandler, console);
           userDatabase.writeTo(databaseFile);
         });
-        default -> throw new IllegalStateException("Unknown service selection: " + choice);
+        default -> throw new IllegalStateException("Unknown service selection: " + url);
       }
     }
   }
